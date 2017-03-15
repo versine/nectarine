@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>β</title>
+    <style>
+        body {
+            margin:0;
+            padding:0;
+        }
+        .list {
+            width:100%;
+            display: flex;
+            align-items: center;
+        }
+        .entry {
+          width: 50%;
+          display: flex;
+        }
+        .filename {
+            width: 50%;
+        }
+        .size {
+            width: 50%;
+        }
+    </style>
+</head>
+<body>
+    <a href="/">β-step</a> | <a href="/upload">upload</a> | <b>listen</b><br>
+    <div class="list">
+        <div class="entry"><div class="filename">Name</div> <div class="size">Size</div></div>
+    {{ range .}}    
+        <div class="entry"><div class="filename">{{ .Name }}</div> <div class="size">{{ .Size }} bytes</div></div>
+    {{ end }}
+    </div>
+</body>
+</html>
