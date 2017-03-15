@@ -26,21 +26,11 @@ func (f handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	status, err := f(w, r)
 	if err != nil {
 		log.Println(err)
-
-		switch status {
-		case http.StatusNotFound:
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		case http.StatusInternalServerError:
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		default:
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
-
+		http.Error(w, http.StatusText(status), status)
 		return
 	}
 
 	// if all is well, send the response
-	w.WriteHeader(status)
 	fmt.Fprint(w)
 }
 
