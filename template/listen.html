@@ -10,30 +10,30 @@
             margin:0;
             padding:0;
         }
-        .list {
-            width:100%;
-            display: flex;
-            align-items: center;
-        }
-        .entry {
-          width: 50%;
-          display: flex;
-        }
-        .filename {
-            width: 50%;
-        }
-        .size {
-            width: 50%;
-        }
     </style>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.0.3/howler.core.min.js"></script>
 </head>
 <body>
-    <a href="/">β-step</a> | <a href="/upload">upload</a> | <b>listen</b><br>
+    <a href="/">β-step</a> | <a href="/upload">upload</a> | <b>listen</b><br><br><br>
     <div class="list">
-        <div class="entry"><div class="filename">Name</div> <div class="size">Size</div></div>
+        <!--<div class="entry"><div class="filename">Name</div> <div class="size">Size</div></div>-->
     {{ range .}}    
-        <div class="entry"><div class="filename">{{ .Name }}</div> <div class="size">{{ .Size }} bytes</div></div>
+        <a class="entry" href="#" onclick="play('/test/' + '{{.Name}}')">
+            <div class="filename">{{ .Name }}&nbsp;{{ .Size }} MB</div>
+        </a>
+        <br>
     {{ end }}
     </div>
+    <script>
+       function play(url) {
+         console.log(url)
+
+         const sound = new Howl({
+              src: [encodeURI(url)]
+         })
+
+         sound.play()
+       }
+    </script>
 </body>
 </html>

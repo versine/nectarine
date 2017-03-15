@@ -13,14 +13,15 @@ import (
 	"time"
 )
 
+type handler func(http.ResponseWriter, *http.Request) (status int, err error)
+
 func main() {
 	http.Handle("/upload", handler(upload))
 	http.Handle("/listen", handler(listen))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/", handler(index))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
-type handler func(http.ResponseWriter, *http.Request) (status int, err error)
 
 func (f handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	status, err := f(w, r)
@@ -53,7 +54,7 @@ func index(w http.ResponseWriter, r *http.Request) (status int, err error) {
 
 type fileEntry struct {
 	Name string
-	Size int64
+	Size string // filesize in MB
 }
 
 func listen(w http.ResponseWriter, r *http.Request) (status int, err error) {
@@ -64,10 +65,11 @@ func listen(w http.ResponseWriter, r *http.Request) (status int, err error) {
 			return http.StatusInternalServerError, fmt.Errorf("failed to parse listen template: %v", err)
 		}
 
-		fileInfos, err := ioutil.ReadDir("./test")
+		fileInfos, err := ioutil.ReadDir("./static")
 		files := make([]fileEntry, len(fileInfos))
 		for i, file := range fileInfos {
-			files[i] = fileEntry{Name: file.Name(), Size: file.Size()}
+			sizeString := fmt.Sprintf("%.2f", float64(file.Size())/(1024.0*1024.0))
+			files[i] = fileEntry{Name: file.Name(), Size: sizeString}
 		}
 
 		if err := t.Execute(w, files); err != nil {
@@ -107,7 +109,7 @@ func upload(w http.ResponseWriter, r *http.Request) (status int, err error) {
 		}
 		defer uploadedFile.Close()
 
-		localFile, err := os.OpenFile("./test/"+header.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		localFile, err := os.OpenFile("./static/"+header.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			return http.StatusInternalServerError, fmt.Errorf("failed to open local file: %v", err)
 		}
