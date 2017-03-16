@@ -36,7 +36,7 @@ func main() {
 		password = "p4ssw0rd"
 	}
 
-	http.Handle("/upload", withAuth(password, handler(upload)))
+	http.Handle("/upload", withAuth(*password, handler(upload)))
 	http.Handle("/listen", handler(listen))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/", handler(index))
