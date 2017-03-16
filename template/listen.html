@@ -15,25 +15,60 @@
 </head>
 <body>
     <a href="/">β-step</a> | <a href="/upload">upload</a> | <b>listen</b><br><br><br>
+
+<hr>
+    <div id="nowplaying">Stopped</div>
+    <a href="#" onclick="play()"> Play </a> |
+    <a href="#" onclick="pause()">Pause</a><br>
+    <hr>
+    <tracks>
     <div class="list">
         <!--<div class="entry"><div class="filename">Name</div> <div class="size">Size</div></div>-->
     {{ range .}}    
-        <a class="entry" href="#" onclick="play('/test/' + '{{.Name}}')">
+        <a class="entry" href="#" onclick="addToQueue('{{.Name}}')">
             <div class="filename">{{ .Name }}&nbsp;{{ .Size }} MB</div>
         </a>
         <br>
     {{ end }}
     </div>
+    
     <script>
-       function play(url) {
-         console.log(url)
+        function Queue(){var a=[],b=0;this.getLength=function(){return a.length-b};this.isEmpty=function(){return 0==a.length};this.enqueue=function(b){a.push(b)};this.dequeue=function(){if(0!=a.length){var c=a[b];2*++b>=a.length&&(a=a.slice(b),b=0);return c}};this.peek=function(){return 0<a.length?a[b]:void 0}};
 
-         const sound = new Howl({
-              src: [encodeURI(url)]
-         })
+        const tracklist = [{{ range .}} {{.Name}}, {{end}} null]
 
-         sound.play()
-       }
+        let q = new Queue()    
+        let currentSound = null
+        let paused = false
+
+        function addToQueue(url) {
+            q.enqueue(url)
+        }
+
+        function pause() {
+            currentSound.pause()
+            paused = true
+        }
+
+        function play() {
+            if(currentSound !== null && paused)
+                currentSound.play()
+            else if(!q.isEmpty()) {
+                paused = false
+
+
+                const url = q.dequeue()
+
+                document.getElementById("nowplaying").innerHTML = "Now playing: " + url
+                currentSound = new Howl({
+                    src: [encodeURI('static/' + url)]
+                })
+
+                currentSound.play()
+
+                currentSound.on('end',  play)
+            }
+        }
     </script>
 </body>
 </html>

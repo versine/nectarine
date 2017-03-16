@@ -15,6 +15,9 @@
 <body>
     <a href="/">β-step</a> | <b>upload</b> | <a href="/listen">listn</a><br>
 <form enctype="multipart/form-data" action="http://localhost:8080/upload" method="post">
+    <label for="password">Password</label>
+    <input type="password" name="password" />
+    <label for="file">File</label>
     <input type="file" name="uploadfile" />
     <input type="hidden" name="token" value="{{.}}"/>
     <input type="submit" value="upload" />

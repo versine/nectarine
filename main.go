@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"html/template"
@@ -13,10 +14,29 @@ import (
 	"time"
 )
 
+type ctxKey int
+
+const (
+	passKey ctxKey = iota
+)
+
+func withAuth(password string, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), passKey, password)
+
+		h.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 type handler func(http.ResponseWriter, *http.Request) (status int, err error)
 
 func main() {
-	http.Handle("/upload", handler(upload))
+	password, set := os.LookupEnv("UPLOAD_SECRET")
+	if !set {
+		password = "p4ssw0rd"
+	}
+
+	http.Handle("/upload", withAuth(password, handler(upload)))
 	http.Handle("/listen", handler(listen))
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/", handler(index))
@@ -82,27 +102,39 @@ func listen(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	}
 }
 
+func renderUploadTemplate(w http.ResponseWriter, r *http.Request, goodStatus int) (status int, err error) {
+	crutime := time.Now().Unix()
+	h := md5.New()
+	io.WriteString(h, strconv.FormatInt(crutime, 10))
+	token := fmt.Sprintf("%x", h.Sum(nil))
+
+	t, err := template.ParseFiles("template/upload.html")
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("failed to parse upload form template: %v", err)
+	}
+	if err := t.Execute(w, token); err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("failed to execute upload form template: %v", err)
+	}
+
+	return goodStatus, nil
+}
+
 func upload(w http.ResponseWriter, r *http.Request) (status int, err error) {
 	switch r.Method {
 	case http.MethodGet:
-		crutime := time.Now().Unix()
-		h := md5.New()
-		io.WriteString(h, strconv.FormatInt(crutime, 10))
-		token := fmt.Sprintf("%x", h.Sum(nil))
-
-		t, err := template.ParseFiles("template/upload.html")
-		if err != nil {
-			return http.StatusInternalServerError, fmt.Errorf("failed to parse upload form template: %v", err)
-		}
-		if err := t.Execute(w, token); err != nil {
-			return http.StatusInternalServerError, fmt.Errorf("failed to execute upload form template: %v", err)
-		}
-
-		return http.StatusOK, nil
+		return renderUploadTemplate(w, r, http.StatusOK)
 
 	case http.MethodPost:
 		maxSize := int64(32 << 20) // max file size
 		r.ParseMultipartForm(maxSize)
+
+		pass, ok := r.Context().Value(passKey).(string)
+		if !ok || pass != r.PostFormValue("password") {
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprint(w)
+			return
+		}
+
 		uploadedFile, header, err := r.FormFile("uploadfile")
 		if err != nil {
 			return http.StatusInternalServerError, fmt.Errorf("failed to retrieve file from POST request: %v", err)
@@ -118,8 +150,8 @@ func upload(w http.ResponseWriter, r *http.Request) (status int, err error) {
 		// write the upload to disk
 		io.Copy(localFile, uploadedFile)
 
-		return http.StatusCreated, nil
+		return renderUploadTemplate(w, r, http.StatusCreated)
 	default:
-		return http.StatusBadRequest, fmt.Errorf("Bad request")
+		return http.StatusBadRequest, fmt.Errorf("bad request")
 	}
 }
